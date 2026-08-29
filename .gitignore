@@ -1,0 +1,22 @@
+# Python
+backend/venv/
+__pycache__/
+*.pyc
+
+# Raw/generated dataset — large, regeneratable via app/ml/generate_dataset.py
+backend/data/clean/
+backend/data/degraded/
+backend/data/splits/
+backend/data/*.csv
+
+# Runtime data — not needed in repo, created fresh on deploy
+backend/database/
+backend/uploads/
+
+# Keep: backend/models/  (trained artifacts needed for deployment)
+# Keep: sample_images/
+
+.env
+.DS_Store
+backend/data/
+backend/data/**

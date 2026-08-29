@@ -1,0 +1,26 @@
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: quality-inspector-backend
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend/database:/app/database
+      - ./backend/uploads:/app/uploads
+    environment:
+      - ALLOWED_ORIGINS=http://localhost:5173,http://localhost:80,http://127.0.0.1:5173
+      - DATABASE_URL=sqlite:////app/database/app.db
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: quality-inspector-frontend
+    ports:
+      - "5173:80"
+    depends_on:
+      - backend
+    restart: unless-stopped

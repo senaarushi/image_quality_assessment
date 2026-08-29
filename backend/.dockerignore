@@ -1,0 +1,10 @@
+venv/
+__pycache__/
+*.pyc
+data/clean/
+data/degraded/
+data/splits/
+data/*.csv
+database/
+uploads/
+.env

@@ -1,0 +1,14 @@
+fastapi==0.115.0
+uvicorn[standard]==0.30.6
+python-multipart==0.0.9
+sqlalchemy==2.0.35
+pydantic==2.9.2
+numpy>=1.26.4,<3.0
+opencv-python-headless==4.10.0.84
+scikit-image==0.24.0
+scikit-learn==1.5.2
+Pillow==10.4.0
+torchvision==0.19.1
+grad-cam==1.5.4
+joblib==1.4.2
+python-dotenv==1.0.1

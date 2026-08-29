@@ -1,0 +1,755 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Image Quality Inspector</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #F7F7F5;
+    --surface: #FFFFFF;
+    --text: #1A1D1F;
+    --text-muted: #6B6F72;
+    --border: #E2E1DC;
+    --accent: #0F766E;
+    --accent-soft: #E6F4F2;
+    --acceptable: #15803D;
+    --acceptable-soft: #EAF6EE;
+    --degraded: #B45309;
+    --degraded-soft: #FDF3E7;
+    --defective: #B91C1C;
+    --defective-soft: #FCEAEA;
+    --radius: 10px;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Inter', sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .app {
+    max-width: 880px;
+    margin: 0 auto;
+    padding: 48px 24px 96px;
+  }
+
+  header.app-header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    margin-bottom: 32px;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .brand {
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 700;
+    font-size: 22px;
+    letter-spacing: -0.01em;
+  }
+
+  .brand span { color: var(--accent); }
+
+  .api-status {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: var(--text-muted);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .dot {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: var(--text-muted);
+  }
+  .dot.ok { background: var(--acceptable); }
+  .dot.down { background: var(--defective); }
+
+  nav.tabs {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 24px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  nav.tabs button {
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 600;
+    font-size: 14px;
+    background: none;
+    border: none;
+    padding: 10px 4px;
+    margin-right: 24px;
+    color: var(--text-muted);
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: color 0.15s ease, border-color 0.15s ease;
+  }
+
+  nav.tabs button.active {
+    color: var(--text);
+    border-bottom-color: var(--accent);
+  }
+
+  nav.tabs button:focus-visible,
+  button:focus-visible,
+  .dropzone:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+
+  section { display: none; }
+  section.active { display: block; }
+
+  .dropzone {
+    border: 1.5px dashed var(--border);
+    border-radius: var(--radius);
+    background: var(--surface);
+    padding: 48px 24px;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color 0.15s ease, background 0.15s ease;
+  }
+
+  .dropzone.dragover {
+    border-color: var(--accent);
+    background: var(--accent-soft);
+  }
+
+  .dropzone-icon {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 28px;
+    color: var(--accent);
+    margin-bottom: 12px;
+  }
+
+  .dropzone h2 {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 17px;
+    margin: 0 0 6px;
+  }
+
+  .dropzone p {
+    color: var(--text-muted);
+    font-size: 13px;
+    margin: 0;
+  }
+
+  input[type="file"] { display: none; }
+
+  .preview-row {
+    display: flex;
+    gap: 16px;
+    align-items: center;
+    margin-top: 16px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 12px 16px;
+  }
+
+  .preview-row img {
+    width: 56px; height: 56px;
+    object-fit: cover;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+  }
+
+  .preview-meta { flex: 1; min-width: 0; }
+  .preview-meta .fname {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .preview-meta .fsize { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+
+  .btn {
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 600;
+    font-size: 14px;
+    border: none;
+    border-radius: 7px;
+    padding: 10px 18px;
+    cursor: pointer;
+    transition: opacity 0.15s ease, transform 0.05s ease;
+  }
+  .btn:active { transform: scale(0.98); }
+  .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  .btn-primary { background: var(--text); color: white; }
+  .btn-primary:hover:not(:disabled) { opacity: 0.85; }
+
+  .btn-ghost { background: transparent; color: var(--text-muted); border: 1px solid var(--border); }
+  .btn-ghost:hover { color: var(--text); border-color: var(--text-muted); }
+
+  .status-line {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    color: var(--text-muted);
+    margin-top: 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .spinner {
+    width: 13px; height: 13px;
+    border: 2px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .error-box {
+    margin-top: 14px;
+    background: var(--defective-soft);
+    border: 1px solid #F0C6C6;
+    color: var(--defective);
+    border-radius: 8px;
+    padding: 12px 14px;
+    font-size: 13px;
+  }
+
+  /* --- Results --- */
+
+  .result-card {
+    margin-top: 28px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+    animation: rise 0.25s ease;
+  }
+  @keyframes rise { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+
+  .result-top {
+    display: flex;
+    gap: 20px;
+    padding: 20px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .result-top img {
+    width: 96px; height: 96px;
+    object-fit: cover;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+
+  .result-summary { flex: 1; min-width: 0; }
+
+  .label-pill {
+    display: inline-block;
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 600;
+    font-size: 12px;
+    letter-spacing: 0.02em;
+    padding: 4px 10px;
+    border-radius: 20px;
+    margin-bottom: 8px;
+  }
+  .label-pill.ACCEPTABLE { background: var(--acceptable-soft); color: var(--acceptable); }
+  .label-pill.DEGRADED { background: var(--degraded-soft); color: var(--degraded); }
+  .label-pill.POTENTIALLY_DEFECTIVE { background: var(--defective-soft); color: var(--defective); }
+
+  .score-row {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+
+  .score-num {
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 700;
+    font-size: 34px;
+    line-height: 1;
+  }
+  .score-suffix { font-size: 14px; color: var(--text-muted); }
+
+  .meter {
+    height: 6px;
+    background: var(--border);
+    border-radius: 4px;
+    overflow: hidden;
+    position: relative;
+  }
+  .meter-fill {
+    height: 100%;
+    border-radius: 4px;
+    transition: width 0.4s ease;
+  }
+  .meter-fill.ACCEPTABLE { background: var(--acceptable); }
+  .meter-fill.DEGRADED { background: var(--degraded); }
+  .meter-fill.POTENTIALLY_DEFECTIVE { background: var(--defective); }
+
+  .fname-small {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-top: 8px;
+  }
+
+  .result-body { padding: 20px; }
+
+  .section-label {
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 600;
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--text-muted);
+    margin: 0 0 12px;
+  }
+
+  .issues-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 24px; }
+
+  .issue-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    padding: 10px 12px;
+    font-size: 13px;
+  }
+
+  .issue-type {
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 600;
+    text-transform: capitalize;
+    flex: 1;
+  }
+
+  .severity-badge {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 12px;
+    text-transform: uppercase;
+  }
+  .severity-badge.low { background: var(--degraded-soft); color: var(--degraded); }
+  .severity-badge.medium { background: var(--degraded-soft); color: var(--degraded); }
+  .severity-badge.high { background: var(--defective-soft); color: var(--defective); }
+
+  .confidence-text {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: var(--text-muted);
+    width: 54px;
+    text-align: right;
+  }
+
+  .no-issues {
+    font-size: 13px;
+    color: var(--text-muted);
+    font-style: italic;
+  }
+
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 10px;
+    margin-bottom: 24px;
+  }
+
+  .stat-cell {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    padding: 10px 12px;
+  }
+
+  .stat-label {
+    font-size: 11px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    margin-bottom: 4px;
+  }
+
+  .stat-value {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 14px;
+  }
+
+  .gradcam-section { margin-top: 4px; }
+
+  .gradcam-btn-row { display: flex; align-items: center; gap: 12px; }
+
+  .gradcam-image {
+    margin-top: 14px;
+    max-width: 100%;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+  }
+
+  /* --- History --- */
+
+  .history-list { display: flex; flex-direction: column; gap: 8px; }
+
+  .history-row {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 14px;
+    cursor: pointer;
+    transition: border-color 0.15s ease;
+  }
+  .history-row:hover { border-color: var(--accent); }
+
+  .history-score {
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 700;
+    font-size: 18px;
+    width: 42px;
+    text-align: center;
+  }
+
+  .history-meta { flex: 1; min-width: 0; }
+  .history-fname {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .history-time { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+
+  .empty-state {
+    text-align: center;
+    padding: 64px 24px;
+    color: var(--text-muted);
+  }
+  .empty-state .glyph { font-size: 28px; margin-bottom: 10px; font-family: 'JetBrains Mono', monospace; }
+  .empty-state p { font-size: 13px; margin: 0; }
+
+  .history-detail-back {
+    margin-bottom: 16px;
+  }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <header class="app-header">
+    <div class="brand">quality<span>scan</span></div>
+    <div class="api-status" id="apiStatus"><span class="dot" id="apiDot"></span><span id="apiStatusText">checking API…</span></div>
+  </header>
+
+  <nav class="tabs">
+    <button class="tab-btn active" data-tab="analyze">Analyze</button>
+    <button class="tab-btn" data-tab="history">History</button>
+  </nav>
+
+  <section id="tab-analyze" class="active">
+    <div class="dropzone" id="dropzone" tabindex="0" role="button" aria-label="Upload an image to analyze">
+      <div class="dropzone-icon">[ + ]</div>
+      <h2>Drop an image, or click to browse</h2>
+      <p>JPG, PNG, BMP, or WEBP — up to 15MB</p>
+      <input type="file" id="fileInput" accept="image/jpeg,image/png,image/bmp,image/webp" />
+    </div>
+
+    <div id="previewRow" style="display:none;" class="preview-row">
+      <img id="previewImg" src="" alt="" />
+      <div class="preview-meta">
+        <div class="fname" id="previewName"></div>
+        <div class="fsize" id="previewSize"></div>
+      </div>
+      <button class="btn btn-ghost" id="clearBtn">Clear</button>
+      <button class="btn btn-primary" id="analyzeBtn">Analyze image</button>
+    </div>
+
+    <div id="statusLine" class="status-line" style="display:none;">
+      <div class="spinner"></div>
+      <span id="statusText">Running analysis…</span>
+    </div>
+
+    <div id="errorBox" class="error-box" style="display:none;"></div>
+
+    <div id="resultContainer"></div>
+  </section>
+
+  <section id="tab-history">
+    <div id="historyListContainer"></div>
+  </section>
+</div>
+
+<script>
+const API_BASE = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+  ? 'http://localhost:8000'
+  : ''; // same-origin in a deployed setup behind a reverse proxy; adjust if backend is on a different host
+
+let selectedFile = null;
+let currentTab = 'analyze';
+
+// ---------- Tabs ----------
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => switchTab(btn.dataset.tab));
+});
+
+function switchTab(tab) {
+  currentTab = tab;
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
+  document.getElementById('tab-analyze').classList.toggle('active', tab === 'analyze');
+  document.getElementById('tab-history').classList.toggle('active', tab === 'history');
+  if (tab === 'history') loadHistory();
+}
+
+// ---------- API health ----------
+async function checkHealth() {
+  const dot = document.getElementById('apiDot');
+  const text = document.getElementById('apiStatusText');
+  try {
+    const res = await fetch(`${API_BASE}/api/health`);
+    const data = await res.json();
+    if (data.status === 'ok') {
+      dot.className = 'dot ok';
+      text.textContent = 'API connected';
+    } else {
+      dot.className = 'dot down';
+      text.textContent = 'models not loaded';
+    }
+  } catch (e) {
+    dot.className = 'dot down';
+    text.textContent = 'API unreachable';
+  }
+}
+checkHealth();
+setInterval(checkHealth, 15000);
+
+// ---------- Upload / dropzone ----------
+const dropzone = document.getElementById('dropzone');
+const fileInput = document.getElementById('fileInput');
+
+dropzone.addEventListener('click', () => fileInput.click());
+dropzone.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') fileInput.click(); });
+
+dropzone.addEventListener('dragover', (e) => { e.preventDefault(); dropzone.classList.add('dragover'); });
+dropzone.addEventListener('dragleave', () => dropzone.classList.remove('dragover'));
+dropzone.addEventListener('drop', (e) => {
+  e.preventDefault();
+  dropzone.classList.remove('dragover');
+  if (e.dataTransfer.files.length) handleFileSelect(e.dataTransfer.files[0]);
+});
+
+fileInput.addEventListener('change', (e) => {
+  if (e.target.files.length) handleFileSelect(e.target.files[0]);
+});
+
+function handleFileSelect(file) {
+  selectedFile = file;
+  document.getElementById('previewName').textContent = file.name;
+  document.getElementById('previewSize').textContent = `${(file.size / 1024).toFixed(0)} KB`;
+  const reader = new FileReader();
+  reader.onload = (e) => { document.getElementById('previewImg').src = e.target.result; };
+  reader.readAsDataURL(file);
+  document.getElementById('previewRow').style.display = 'flex';
+  document.getElementById('errorBox').style.display = 'none';
+  document.getElementById('resultContainer').innerHTML = '';
+}
+
+document.getElementById('clearBtn').addEventListener('click', () => {
+  selectedFile = null;
+  fileInput.value = '';
+  document.getElementById('previewRow').style.display = 'none';
+  document.getElementById('resultContainer').innerHTML = '';
+  document.getElementById('errorBox').style.display = 'none';
+});
+
+document.getElementById('analyzeBtn').addEventListener('click', analyzeImage);
+
+async function analyzeImage() {
+  if (!selectedFile) return;
+
+  const statusLine = document.getElementById('statusLine');
+  const errorBox = document.getElementById('errorBox');
+  const analyzeBtn = document.getElementById('analyzeBtn');
+
+  statusLine.style.display = 'flex';
+  errorBox.style.display = 'none';
+  document.getElementById('resultContainer').innerHTML = '';
+  analyzeBtn.disabled = true;
+
+  const formData = new FormData();
+  formData.append('file', selectedFile);
+
+  try {
+    const res = await fetch(`${API_BASE}/api/analyze`, { method: 'POST', body: formData });
+    const data = await res.json();
+
+    if (!res.ok) {
+      throw new Error(data.detail || `Request failed with status ${res.status}`);
+    }
+
+    renderResult(data, document.getElementById('previewImg').src);
+  } catch (e) {
+    errorBox.textContent = `Analysis failed: ${e.message}`;
+    errorBox.style.display = 'block';
+  } finally {
+    statusLine.style.display = 'none';
+    analyzeBtn.disabled = false;
+  }
+}
+
+// ---------- Result rendering ----------
+function renderResult(data, previewSrc, targetContainer) {
+  const container = targetContainer || document.getElementById('resultContainer');
+  const imageSrc = previewSrc || `${API_BASE}${data.image_url}`;
+
+  const issuesHtml = data.issues.length
+    ? data.issues.map(issue => `
+        <div class="issue-row">
+          <span class="issue-type">${issue.type}</span>
+          <span class="severity-badge ${issue.severity}">${issue.severity}</span>
+          <span class="confidence-text">${(issue.confidence * 100).toFixed(1)}%</span>
+        </div>
+      `).join('')
+    : `<div class="no-issues">No quality issues detected.</div>`;
+
+  const statsHtml = Object.entries(data.image_stats).map(([key, value]) => `
+    <div class="stat-cell">
+      <div class="stat-label">${key.replace(/_/g, ' ')}</div>
+      <div class="stat-value">${typeof value === 'number' ? value.toFixed(4) : value}</div>
+    </div>
+  `).join('');
+
+  container.innerHTML = `
+    <div class="result-card">
+      <div class="result-top">
+        <img src="${imageSrc}" alt="Analyzed image" />
+        <div class="result-summary">
+          <div class="label-pill ${data.quality_label}">${data.quality_label.replace(/_/g, ' ')}</div>
+          <div class="score-row">
+            <span class="score-num">${data.quality_score}</span>
+            <span class="score-suffix">/ 100</span>
+          </div>
+          <div class="meter"><div class="meter-fill ${data.quality_label}" style="width:${data.quality_score}%"></div></div>
+          <div class="fname-small">${data.filename} · id #${data.id}</div>
+        </div>
+      </div>
+      <div class="result-body">
+        <p class="section-label">Detected issues</p>
+        <div class="issues-list">${issuesHtml}</div>
+
+        <p class="section-label">Image statistics</p>
+        <div class="stats-grid">${statsHtml}</div>
+
+        ${data.gradcam_available ? `
+          <p class="section-label">Explainability</p>
+          <div class="gradcam-section">
+            <div class="gradcam-btn-row">
+              <button class="btn btn-ghost" id="gradcamBtn-${data.id}">Show Grad-CAM heatmap</button>
+              <span id="gradcamStatus-${data.id}" style="font-size:12px;color:var(--text-muted);"></span>
+            </div>
+            <div id="gradcamImgWrap-${data.id}"></div>
+          </div>
+        ` : ''}
+      </div>
+    </div>
+  `;
+
+  if (data.gradcam_available) {
+    container.querySelector(`#gradcamBtn-${data.id}`).addEventListener('click', () => loadGradcam(data.id, container));
+  }
+}
+
+async function loadGradcam(resultId, container) {
+  const scope = container || document;
+  const statusEl = scope.querySelector(`#gradcamStatus-${resultId}`);
+  const wrapEl = scope.querySelector(`#gradcamImgWrap-${resultId}`);
+  statusEl.textContent = 'generating…';
+  try {
+    const res = await fetch(`${API_BASE}/api/results/${resultId}/gradcam`);
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail || 'Failed to generate heatmap');
+    wrapEl.innerHTML = `<img class="gradcam-image" src="${data.gradcam_image}" alt="Grad-CAM heatmap explaining the ${data.explained_class} prediction" />`;
+    statusEl.textContent = `explaining: ${data.explained_class}`;
+  } catch (e) {
+    statusEl.textContent = `error: ${e.message}`;
+  }
+}
+
+// ---------- History ----------
+async function loadHistory() {
+  const container = document.getElementById('historyListContainer');
+  container.innerHTML = `<div class="status-line" style="display:flex;"><div class="spinner"></div><span>Loading history…</span></div>`;
+
+  try {
+    const res = await fetch(`${API_BASE}/api/history?limit=50&offset=0`);
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail || 'Failed to load history');
+
+    if (data.results.length === 0) {
+      container.innerHTML = `
+        <div class="empty-state">
+          <div class="glyph">[ ]</div>
+          <p>No analyses yet. Upload an image on the Analyze tab to get started.</p>
+        </div>
+      `;
+      return;
+    }
+
+    container.innerHTML = `<div class="history-list">${data.results.map(r => `
+      <div class="history-row" data-id="${r.id}">
+        <div class="history-score" style="color:${scoreColor(r.quality_label)}">${r.quality_score}</div>
+        <div class="history-meta">
+          <div class="history-fname">${r.filename}</div>
+          <div class="history-time">${new Date(r.created_at).toLocaleString()} · ${r.quality_label.replace(/_/g, ' ')}</div>
+        </div>
+      </div>
+    `).join('')}</div>`;
+
+    container.querySelectorAll('.history-row').forEach(row => {
+      row.addEventListener('click', () => loadHistoryDetail(row.dataset.id));
+    });
+  } catch (e) {
+    container.innerHTML = `<div class="error-box">Failed to load history: ${e.message}</div>`;
+  }
+}
+
+function scoreColor(label) {
+  if (label === 'ACCEPTABLE') return 'var(--acceptable)';
+  if (label === 'DEGRADED') return 'var(--degraded)';
+  return 'var(--defective)';
+}
+
+async function loadHistoryDetail(id) {
+  const container = document.getElementById('historyListContainer');
+  container.innerHTML = `<div class="status-line" style="display:flex;"><div class="spinner"></div><span>Loading result…</span></div>`;
+
+  try {
+    const res = await fetch(`${API_BASE}/api/results/${id}`);
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail || 'Failed to load result');
+
+    container.innerHTML = `<button class="btn btn-ghost history-detail-back" id="backToHistory">&larr; Back to history</button><div id="historyDetailResult"></div>`;
+    document.getElementById('backToHistory').addEventListener('click', loadHistory);
+
+    // Reuse renderResult but target the history detail container
+    renderResult(data, null, document.getElementById('historyDetailResult'));
+  } catch (e) {
+    container.innerHTML = `<div class="error-box">Failed to load result: ${e.message}</div>`;
+  }
+}
+</script>
+
+</body>
+</html>
